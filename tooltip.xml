@@ -1,0 +1,82 @@
+<krpano bgcolor="0xFFFFFF">
+
+
+	<include url="tour.xml" />
+	<include url="tourdata.xml" />
+	<style name="skin_hotspotstyle"/>
+
+	<action name="delete_space_from_start_view" scope="local" type="Javascript" protect="true"><![CDATA[
+	    var panoarray = krpano.get("pano").getArray();
+	    for (var i=0; i < panoarray.length; i++)
+	    {
+	      var pn = panoarray[i];
+	      var str = pn.start_view;
+	      str = str.replace(/\s+/g, '');
+	      pn.start_view = str;
+	      //jscall(calc('console.log("str: ' + str +'")'));
+	    }
+	]]></action>
+
+
+	<action name="loadpreview" autorun="preinit" scope="local">
+		delete_space_from_start_view(); 
+
+  	if(!av AND !bv AND !cv,
+  		txtsplit(get(pano[get(startscene)].start_view),',', av,bv,cv);
+  	);
+  	ifnot(poi_prev, 
+  		set(control.usercontrol, off);
+  	);
+
+  	def(global.avp, integer, get(av));
+  	def(global.bvp, integer, get(bv));
+  	def(global.cvp, integer, get(cv));
+
+  	if(avp GT 360,
+		Math.round(avp1, calc(avp/360));
+		calc(avp2, avp-(avp1*360));
+		copy(avp, avp2);
+	);
+
+  	//jscall(calc('console.log("START av: ' + av + ' bv: ' + bv + ' cv: ' + cv + ' avp: '+avp+' bvp: '+bvp+' cvp: '+cvp+'")'));
+  	
+	
+  	if(avp === 'null' AND bvp === 'null' AND cvp === 'null', txtsplit(get(pano[get(startscene)].start_view), ",", avp, bvp, cvp));
+
+  	if(startscene === null OR !scene[get(startscene)], copy(startscene,scene[0].name); );
+  	
+  	if(static_preview,
+  		loadscene(get(startscene),calc('view.hlookat='+avp+'&amp;view.vlookat='+bvp+'&amp;view.fov='+cvp), MERGE);
+  	,
+  		if(!poi_prev,
+  			loadscene(get(startscene), calc('view.hlookat='+avp-180+'&amp;view.vlookat=90&amp;view.fov=130'), MERGE);
+  		
+  			set(view, fisheye=1,stereographic=true,fovtype=VFOV,fovmax=130,architectural=0);
+  			delayedcall(0.2, tonormalview());
+  		,
+  			loadscene(get(startscene), calc('view.hlookat='+avp+'&amp;view.vlookat='+bvp+'&amp;view.fov='+cvp), MERGE);
+  		);
+  	);
+  	if(scene[get(startscene)].videoscene, 
+  		set(plugin[calc('video_'+scene[get(startscene)].title)].volume,0.0);
+  	);
+	</action>
+
+	<action name="tonormalview">
+		set(image.depthmap.enabled,false);updatescreen();
+
+		tween(view.hlookat, get(avp), 0.5, easeInOutQuad);
+		tween(view.vlookat, get(bvp), 0.5, easeInOutQuad);
+		tween(view.fov,     get(cvp),  0.5, easeInOutQuad);
+		tween(view.fisheye, 0, 0.5, easeInOutQuad);
+		set(view.fovmax, 130);
+		tween(view.pannini, 0.5, distance(2.0,0.8));
+		if(view_fishaye, set(view.stereographic, true));
+
+		delayedcall(3.0,
+			tween(view.hlookat, 10000000, distance(100,10));
+			tween(view.vlookat, 0, 5);
+		);
+	</action>
+
+</krpano>
